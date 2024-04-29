@@ -15,6 +15,5 @@ export interface ClientToServerEvents {
     col: number;
     gameId: string;
   }) => void;
-  startNewGame: (game: Game) => void;
   disconnect: () => void;
 }

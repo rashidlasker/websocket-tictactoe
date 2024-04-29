@@ -39,7 +39,8 @@ const TicTacToeGame: React.FC = () => {
 
   const startNewGame = () => {
     if (game && game.gameState !== GameState.InProgress) {
-      socket.emit("startNewGame", game);
+      setGame(null);
+      socket.emit("joinLobby");
     }
   };
 

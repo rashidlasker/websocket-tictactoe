@@ -99,37 +99,6 @@ io.on("connection", (socket) => {
     io.to(game.room).emit("updateGame", game);
   });
 
-  socket.on("startNewGame", (game) => {
-    if (!game) {
-      return;
-    }
-    const playerX =
-      Math.random() > 0.5
-        ? game.players[Marker.PlayerX]
-        : game.players[Marker.PlayerO];
-    const playerO =
-      playerX === game.players[Marker.PlayerX]
-        ? game.players[Marker.PlayerO]
-        : game.players[Marker.PlayerX];
-    let newGame: Game = {
-      id: game.id,
-      room: game.room,
-      players: {
-        [Marker.PlayerX]: playerX,
-        [Marker.PlayerO]: playerO,
-      },
-      board: [
-        [Marker.Empty, Marker.Empty, Marker.Empty],
-        [Marker.Empty, Marker.Empty, Marker.Empty],
-        [Marker.Empty, Marker.Empty, Marker.Empty],
-      ],
-      nextPlayer: playerX,
-      gameState: GameState.InProgress,
-    };
-    games[newGame.id] = newGame;
-    io.to(game.room).emit("updateGame", newGame);
-  });
-
   socket.on("disconnect", () => {
     let player = allPlayers[socket.id];
     if (player && player.activeGame) {

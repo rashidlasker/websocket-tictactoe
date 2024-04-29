@@ -1,4 +1,3 @@
-
 export interface Player {
     id: string;
     activeGame: string | null;
@@ -20,7 +19,11 @@ export enum BoardSpot {
 
 export interface Game {
     id: string;
-    players: string[];
+    room: string;
+    players: {
+        [BoardSpot.PlayerX]: string;
+        [BoardSpot.PlayerO]: string;
+    };
     board: BoardSpot[][];
     nextPlayer: string;
     gameState: GameState;

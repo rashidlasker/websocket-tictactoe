@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import io from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { Marker, Game, GameState } from "../../../shared/game";
+import { ServerToClientEvents, ClientToServerEvents } from "../../../shared/socket";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "./ui/button";
 
-const socket = io("http://localhost:5000");
+const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://localhost:5000");
 
 const TicTacToeGame: React.FC = () => {
   const { toast } = useToast();

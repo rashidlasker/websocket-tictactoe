@@ -2,10 +2,14 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { Marker, Game, GameState, Player } from "../../shared/game";
+import {
+  ClientToServerEvents,
+  ServerToClientEvents,
+} from "../../shared/socket";
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
     origin: "http://localhost:3000",
   },

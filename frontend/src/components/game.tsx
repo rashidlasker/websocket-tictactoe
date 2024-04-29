@@ -16,6 +16,7 @@ const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
 );
 
 const TicTacToeGame: React.FC = () => {
+  const myPlayerId = socket.id;
   const { toast } = useToast();
   const [game, setGame] = useState<Game | null>(null);
 
@@ -27,18 +28,26 @@ const TicTacToeGame: React.FC = () => {
     };
   }, []);
 
+  const isMyTurn = useMemo(() => {
+    return (
+      game &&
+      ((game.nextPlayer === Marker.X && myPlayerId === game.playerX) ||
+        (game.nextPlayer === Marker.O && myPlayerId === game.playerO))
+    );
+  }, [game, myPlayerId]);
+
   const isSpaceSelectable = (row: number, col: number) => {
     return (
       game &&
       game.board[row][col] === Marker.Empty &&
       game.gameState === GameState.InProgress &&
-      game.nextPlayer === socket.id
+      isMyTurn
     );
   };
 
   const makeMove = (row: number, col: number) => {
     if (game) {
-      if (game.nextPlayer !== socket.id) {
+      if (!isMyTurn) {
         toast({
           variant: "destructive",
           title: "Not your turn.",

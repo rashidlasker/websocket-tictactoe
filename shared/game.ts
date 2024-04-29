@@ -13,16 +13,20 @@ export enum GameState {
 
 export enum Marker {
   Empty = " ",
-  PlayerX = "X",
-  PlayerO = "O",
+  X = "X",
+  O = "O",
 }
 
+// Game state must be one of the following:
 export interface Game {
   id: number;
   room: string;
   playerX: string;
   playerO: string;
-  board: Marker[][];
-  nextPlayer: string;
+  board: Board;
+  nextPlayer: Marker.X | Marker.O;
   gameState: GameState;
 }
+
+type Row = [Marker, Marker, Marker];
+type Board = [Row, Row, Row];

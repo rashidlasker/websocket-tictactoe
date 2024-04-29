@@ -108,7 +108,7 @@ io.on("connection", (socket) => {
 
     const nextGameState = produce(game, (draft) => {
       draft.board[row][col] =
-        draft.nextPlayer === draft.playerX ? Marker.PlayerX : Marker.PlayerO;
+        draft.nextPlayer === draft.playerX ? Marker.X : Marker.O;
       if (isGameWon(draft)) {
         draft.gameState =
           draft.nextPlayer === draft.playerX
@@ -119,8 +119,7 @@ io.on("connection", (socket) => {
       ) {
         draft.gameState = GameState.Draw;
       }
-      draft.nextPlayer =
-        draft.nextPlayer === draft.playerX ? draft.playerO : draft.playerX;
+      draft.nextPlayer = draft.nextPlayer === Marker.X ? Marker.O : Marker.X;
     });
 
     await prisma.game.update({

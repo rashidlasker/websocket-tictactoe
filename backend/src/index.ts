@@ -114,6 +114,10 @@ io.on("connection", (socket) => {
           draft.nextPlayer === draft.playerX
             ? GameState.PlayerXWon
             : GameState.PlayerOWon;
+      } else if (
+        draft.board.every((row) => row.every((cell) => cell !== Marker.Empty))
+      ) {
+        draft.gameState = GameState.Draw;
       }
       draft.nextPlayer =
         draft.nextPlayer === draft.playerX ? draft.playerO : draft.playerX;

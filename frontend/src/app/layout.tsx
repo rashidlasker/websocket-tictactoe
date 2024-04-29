@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css";
 
 const fontSans = FontSans({
@@ -19,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={fontSans.className}>{children}</body>
+      <body className={fontSans.className}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

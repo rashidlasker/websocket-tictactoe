@@ -2,11 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
-import { BoardSpot, Game } from "../../../shared/types";
+import { BoardSpot, Game, GameState } from "../../../shared/types";
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "./ui/button";
 
 const socket = io("http://localhost:5000");
 
 const TicTacToeGame: React.FC = () => {
+  const { toast } = useToast();
   const [game, setGame] = useState<Game | null>(null);
 
   useEffect(() => {
@@ -19,16 +22,23 @@ const TicTacToeGame: React.FC = () => {
 
   const makeMove = (row: number, col: number) => {
     if (game) {
-      if (game.nextPlayer !== socket.id) return;
       if (game.board[row][col] !== " ") return;
-      if (game.gameState !== "inProgress") return;
+      if (game.gameState !== GameState.InProgress) return;
+      if (game.nextPlayer !== socket.id) {
+        toast({
+          variant: "destructive",
+          title: "Not your turn.",
+          duration: 1000,
+        });
+        return;
+      }
       socket.emit("makeMove", { row, col, gameId: game.id });
     }
   };
 
   const startNewGame = () => {
-    if (game && game.gameState !== "inProgress") {
-      socket.emit('startNewGame', game);
+    if (game && game.gameState !== GameState.InProgress) {
+      socket.emit("startNewGame", game);
     }
   };
 
@@ -37,15 +47,25 @@ const TicTacToeGame: React.FC = () => {
       <h1>Tic Tac Toe</h1>
       {game ? (
         <div>
-          {game.gameState === "inProgress" ? (
+          {game.gameState === GameState.InProgress ? (
             <div>
               {game.nextPlayer === socket.id ? "Your turn" : "Opponent's turn"}
             </div>
-          ) : game.gameState === "playerXWon" ? 
-            (socket.id === game.players.X ? <div>You won!</div> : <div>Player X won</div>) 
-            : game.gameState === "playerOWon" ? 
-            (socket.id === game.players.O ? <div>Player O won</div> : <div>You won!</div>)
-            : game.gameState === "draw" ? <div>Draw</div> : null}
+          ) : game.gameState === GameState.PlayerXWon ? (
+            socket.id === game.players.X ? (
+              <div>You won!</div>
+            ) : (
+              <div>Player X won</div>
+            )
+          ) : game.gameState === GameState.PlayerOWon ? (
+            socket.id === game.players.O ? (
+              <div>You won!</div>
+            ) : (
+              <div>Player O won</div>
+            )
+          ) : game.gameState === GameState.Draw ? (
+            <div>Draw</div>
+          ) : null}
           <div className="flex flex-col">
             {game &&
               game.board.map((row, i) => (
@@ -63,7 +83,7 @@ const TicTacToeGame: React.FC = () => {
               ))}
           </div>
           {game.gameState !== "inProgress" && (
-            <button onClick={startNewGame}>Start new game</button>
+            <Button onClick={startNewGame}>Start new game</Button>
           )}
         </div>
       ) : (

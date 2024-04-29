@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import io from "socket.io-client";
-import { BoardSpot, Game, GameState } from "../../../shared/types";
+import { Marker, Game, GameState } from "../../../shared/types";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "./ui/button";
 
@@ -13,7 +13,7 @@ const TicTacToeGame: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
 
   useEffect(() => {
-    socket.emit("joinGame");
+    socket.emit("joinLobby");
     socket.on("setGame", (game: Game) => setGame(game));
     return () => {
       socket.off("setGame");
@@ -22,7 +22,7 @@ const TicTacToeGame: React.FC = () => {
 
   const makeMove = (row: number, col: number) => {
     if (game) {
-      if (game.board[row][col] !== " ") return;
+      if (game.board[row][col] !== Marker.Empty) return;
       if (game.gameState !== GameState.InProgress) return;
       if (game.nextPlayer !== socket.id) {
         toast({
@@ -42,52 +42,51 @@ const TicTacToeGame: React.FC = () => {
     }
   };
 
+  const message = useMemo(() => {
+    if (!game) return "Waiting for another player...";
+    if (game.gameState === GameState.InProgress) {
+      return game.nextPlayer === socket.id ? "Your turn" : "Opponent's turn";
+    }
+    if (game.gameState === GameState.PlayerXWon) {
+      return socket.id === game.players[Marker.PlayerX]
+        ? "You won!"
+        : "Player X won";
+    }
+    if (game.gameState === GameState.PlayerOWon) {
+      return socket.id === game.players[Marker.PlayerO]
+        ? "You won!"
+        : "Player O won";
+    }
+    if (game.gameState === GameState.Draw) {
+      return "Draw";
+    }
+  }, [game]);
+
   return (
     <div>
       <h1>Tic Tac Toe</h1>
-      {game ? (
+      {message && <div>{message}</div>}
+      {!!game && (
         <div>
-          {game.gameState === GameState.InProgress ? (
-            <div>
-              {game.nextPlayer === socket.id ? "Your turn" : "Opponent's turn"}
-            </div>
-          ) : game.gameState === GameState.PlayerXWon ? (
-            socket.id === game.players.X ? (
-              <div>You won!</div>
-            ) : (
-              <div>Player X won</div>
-            )
-          ) : game.gameState === GameState.PlayerOWon ? (
-            socket.id === game.players.O ? (
-              <div>You won!</div>
-            ) : (
-              <div>Player O won</div>
-            )
-          ) : game.gameState === GameState.Draw ? (
-            <div>Draw</div>
-          ) : null}
           <div className="flex flex-col">
-            {game &&
-              game.board.map((row, i) => (
-                <div key={i} className="flex flex-row justify-center">
-                  {row.map((cell, j) => (
-                    <div
-                      key={j}
-                      className="w-16 h-16 flex items-center justify-center border border-gray-300"
-                      onClick={() => makeMove(i, j)}
-                    >
-                      {cell}
-                    </div>
-                  ))}
-                </div>
-              ))}
+            {game.board.map((row, i) => (
+              <div key={i} className="flex flex-row justify-center">
+                {row.map((cell, j) => (
+                  <div
+                    key={j}
+                    className="w-16 h-16 flex items-center justify-center border border-gray-300"
+                    onClick={() => makeMove(i, j)}
+                  >
+                    {cell}
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
-          {game.gameState !== "inProgress" && (
+          {game.gameState !== GameState.InProgress && (
             <Button onClick={startNewGame}>Start new game</Button>
           )}
         </div>
-      ) : (
-        <div>Waiting for another player...</div>
       )}
     </div>
   );

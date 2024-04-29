@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { Marker, Game, GameState, Player } from "../../shared/game";
+import { produce } from "immer";
 import {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -15,8 +16,8 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   },
 });
 
-let allPlayers: Record<string, Player> = {};
-let games: Record<string, Game> = {};
+const allPlayers: Record<string, Player> = {};
+const games: Record<string, Game> = {};
 
 io.on("connection", (socket) => {
   socket.on("joinLobby", () => {
@@ -25,11 +26,11 @@ io.on("connection", (socket) => {
     if (allPlayers[playerId]) {
       allPlayers[playerId].activeGame = null;
     } else {
-      let newPlayer = { id: playerId, activeGame: null };
+      const newPlayer = { id: playerId, activeGame: null };
       allPlayers[playerId] = newPlayer;
     }
 
-    let availablePlayer = Object.values(allPlayers).find(
+    const availablePlayer = Object.values(allPlayers).find(
       (player) => player.activeGame === null && player.id !== socket.id
     );
 
@@ -44,7 +45,7 @@ io.on("connection", (socket) => {
               [Marker.PlayerX]: availablePlayer.id,
               [Marker.PlayerO]: socket.id,
             };
-      let newGame: Game = {
+      const newGame: Game = {
         id: socket.id + availablePlayer.id,
         room: availablePlayer.id,
         players,
@@ -68,7 +69,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("makeMove", ({ row, col, gameId }) => {
-    let game = games[gameId];
+    const game = games[gameId];
     const playerID = socket.id;
     if (
       !game ||
@@ -81,32 +82,34 @@ io.on("connection", (socket) => {
       return;
     }
 
-    game.board[row][col] =
-      game.nextPlayer === game.players[Marker.PlayerX]
-        ? Marker.PlayerX
-        : Marker.PlayerO;
-    if (isGameWon(game)) {
-      game.gameState =
-        game.nextPlayer === game.players[Marker.PlayerX]
-          ? GameState.PlayerXWon
-          : GameState.PlayerOWon;
-    }
-    game.nextPlayer =
-      game.nextPlayer === game.players[Marker.PlayerX]
-        ? game.players[Marker.PlayerO]
-        : game.players[Marker.PlayerX];
+    const nextGameState = produce(game, (draft) => {
+      draft.board[row][col] =
+        draft.nextPlayer === draft.players[Marker.PlayerX]
+          ? Marker.PlayerX
+          : Marker.PlayerO;
+      if (isGameWon(draft)) {
+        draft.gameState =
+          draft.nextPlayer === draft.players[Marker.PlayerX]
+            ? GameState.PlayerXWon
+            : GameState.PlayerOWon;
+      }
+      draft.nextPlayer =
+        draft.nextPlayer === draft.players[Marker.PlayerX]
+          ? draft.players[Marker.PlayerO]
+          : draft.players[Marker.PlayerX];
+    });
 
-    io.to(game.room).emit("updateGame", game);
+    io.to(nextGameState.room).emit("updateGame", nextGameState);
   });
 
   socket.on("disconnect", () => {
-    let player = allPlayers[socket.id];
+    const player = allPlayers[socket.id];
     if (player && player.activeGame) {
-      let game = games[player.activeGame];
+      const game = games[player.activeGame];
       if (game && game.gameState === GameState.InProgress) {
         game.gameState = GameState.Quit;
+        io.to(game.room).emit("updateGame", game);
       }
-      player.activeGame = null;
     }
   });
 });

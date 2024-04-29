@@ -3,11 +3,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { Marker, Game, GameState } from "../../../shared/game";
-import { ServerToClientEvents, ClientToServerEvents } from "../../../shared/socket";
+import {
+  ServerToClientEvents,
+  ClientToServerEvents,
+} from "../../../shared/socket";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "./ui/button";
+import { twMerge } from "tailwind-merge";
 
-const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io("http://localhost:5000");
+const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  "http://localhost:5000"
+);
 
 const TicTacToeGame: React.FC = () => {
   const { toast } = useToast();
@@ -21,10 +27,17 @@ const TicTacToeGame: React.FC = () => {
     };
   }, []);
 
+  const isSpaceSelectable = (row: number, col: number) => {
+    return (
+      game &&
+      game.board[row][col] === Marker.Empty &&
+      game.gameState === GameState.InProgress &&
+      game.nextPlayer === socket.id
+    );
+  };
+
   const makeMove = (row: number, col: number) => {
     if (game) {
-      if (game.board[row][col] !== Marker.Empty) return;
-      if (game.gameState !== GameState.InProgress) return;
       if (game.nextPlayer !== socket.id) {
         toast({
           variant: "destructive",
@@ -33,6 +46,7 @@ const TicTacToeGame: React.FC = () => {
         });
         return;
       }
+      if (!isSpaceSelectable(row, col)) return;
       socket.emit("makeMove", { row, col, gameId: game.id });
     }
   };
@@ -48,18 +62,17 @@ const TicTacToeGame: React.FC = () => {
     if (!game) return "Waiting for another player...";
     if (game.gameState === GameState.InProgress) {
       return game.nextPlayer === socket.id ? "Your turn" : "Opponent's turn";
-    }
-    if (game.gameState === GameState.PlayerXWon) {
+    } else if (game.gameState === GameState.Quit) {
+      return "Opponent left the game";
+    } else if (game.gameState === GameState.PlayerXWon) {
       return socket.id === game.players[Marker.PlayerX]
         ? "You won!"
         : "Player X won";
-    }
-    if (game.gameState === GameState.PlayerOWon) {
+    } else if (game.gameState === GameState.PlayerOWon) {
       return socket.id === game.players[Marker.PlayerO]
         ? "You won!"
         : "Player O won";
-    }
-    if (game.gameState === GameState.Draw) {
+    } else if (game.gameState === GameState.Draw) {
       return "Draw";
     }
   }, [game]);
@@ -76,7 +89,12 @@ const TicTacToeGame: React.FC = () => {
                 {row.map((cell, j) => (
                   <div
                     key={j}
-                    className="w-16 h-16 flex items-center justify-center border border-gray-300"
+                    className={twMerge(
+                      "w-16 h-16 flex items-center justify-center border border-gray-300",
+                      isSpaceSelectable(i, j)
+                        ? "hover:bg-gray-100 cursor-pointer"
+                        : ""
+                    )}
                     onClick={() => makeMove(i, j)}
                   >
                     {cell}

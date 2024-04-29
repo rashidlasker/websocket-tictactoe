@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import io from "socket.io-client";
-import { Marker, Game, GameState } from "../../../shared/types";
+import { Marker, Game, GameState } from "../../../shared/game";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "./ui/button";
 

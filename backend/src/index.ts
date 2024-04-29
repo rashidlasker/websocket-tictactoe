@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { Marker, Game, GameState, Player } from "../../shared/types";
+import { Marker, Game, GameState, Player } from "../../shared/game";
 
 const app = express();
 const server = createServer(app);

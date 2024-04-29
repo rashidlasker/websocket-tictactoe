@@ -1,25 +1,45 @@
-import { Button } from "./ui/button";
+"use client"
 
-const Game: React.FC = () =>{
-    const size = 3;
-    return (
+import React, { useEffect, useState } from 'react';
+import io from 'socket.io-client';
+import { Game } from '../../../shared/types';
+
+const socket = io('http://localhost:5000');
+
+const TicTacToeGame: React.FC = () => {
+  const [game, setGame] = useState<Game | null>(null);
+
+  useEffect(() => {
+    console.log('connecting')
+    socket.emit('joinGame');
+    socket.on('gameStart', (game: Game) => setGame(game));
+    return () => {socket.off('playerInfo').off('gameStart').off('gameState')};
+  }, []);
+
+  // const makeMove = (position: number) => {
+  //   if (player && gameState) {
+  //     socket.emit('makeMove', player, position, gameState, player.activeGame);
+  //   }
+  // };
+
+  // const startNewGame = () => {
+  //   if (player) {
+  //     socket.emit('startNewGame', player.activeGame);
+  //   }
+  // };
+
+  return (
+    <div>
+      {JSON.stringify(game)}
       <div>
-        <h1 className="text-4xl font-bold">Tic Tac Toe</h1>
-        <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: size * size }).map((_, index) => (
-            <button
-              key={index}
-              className="bg-gray-200 h-24 w-24 flex items-center justify-center text-2xl font-bold"
-            >
-              {index}
-            </button>
-          ))}
-        </div>
-        <Button>
-          Reset
-        </Button>
+        {Array(9).fill(null).map((_, position) => (
+          <button key={position} onClick={() => {}}>
+            {/* {gameState && gameState[position]} */} {position}
+          </button>
+        ))}
       </div>
-    );
-  }
-  
-  export default Game;
+    </div>
+  );
+};
+
+export default TicTacToeGame;

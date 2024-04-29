@@ -1,3 +1,4 @@
+import { Button } from "./ui/button";
 
 const Game: React.FC = () =>{
     const size = 3;
@@ -14,9 +15,9 @@ const Game: React.FC = () =>{
             </button>
           ))}
         </div>
-        <button className="bg-blue-500 text-white font-bold px-4 py-2 rounded">
+        <Button>
           Reset
-        </button>
+        </Button>
       </div>
     );
   }

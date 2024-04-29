@@ -15,9 +15,9 @@ const TicTacToeGame: React.FC = () => {
 
   useEffect(() => {
     socket.emit("joinLobby");
-    socket.on("setGame", (game: Game) => setGame(game));
+    socket.on("updateGame", (game: Game) => setGame(game));
     return () => {
-      socket.off("setGame");
+      socket.off("updateGame");
     };
   }, []);
 

@@ -1,7 +1,7 @@
 import { Game } from "./game";
 
 export interface ServerToClientEvents {
-  setGame: (game: Game) => void;
+  updateGame: (game: Game) => void;
 }
 
 export interface ClientToServerEvents {

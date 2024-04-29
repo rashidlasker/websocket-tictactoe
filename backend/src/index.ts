@@ -61,7 +61,7 @@ io.on("connection", (socket) => {
       allPlayers[availablePlayer.id].activeGame = newGame.id;
       // add players to the game room
       socket.join(availablePlayer.id);
-      io.to(availablePlayer.id).emit("setGame", newGame);
+      io.to(availablePlayer.id).emit("updateGame", newGame);
     } else {
       socket.join(playerId);
     }
@@ -96,7 +96,7 @@ io.on("connection", (socket) => {
         ? game.players[Marker.PlayerO]
         : game.players[Marker.PlayerX];
 
-    io.to(game.room).emit("setGame", game);
+    io.to(game.room).emit("updateGame", game);
   });
 
   socket.on("startNewGame", (game) => {
@@ -127,7 +127,7 @@ io.on("connection", (socket) => {
       gameState: GameState.InProgress,
     };
     games[newGame.id] = newGame;
-    io.to(game.room).emit("setGame", newGame);
+    io.to(game.room).emit("updateGame", newGame);
   });
 
   socket.on("disconnect", () => {

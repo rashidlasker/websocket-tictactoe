@@ -11,10 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.13.0",
     "express": "^4.19.2",
     "http": "^0.0.1-security",
     "immer": "^10.1.1",
     "socket.io": "^4.7.5",
+    "sqlite3": "^5.1.7",
     "ws": "^8.17.0"
   },
   "devDependencies": {

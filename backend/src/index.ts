@@ -7,7 +7,9 @@ import {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "../../shared/socket";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 const app = express();
 const server = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
@@ -16,67 +18,89 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   },
 });
 
-const allPlayers: Record<string, Player> = {};
-const games: Record<string, Game> = {};
-
 io.on("connection", (socket) => {
-  socket.on("joinLobby", () => {
+  socket.on("joinLobby", async () => {
     const playerId = socket.id;
 
-    if (allPlayers[playerId]) {
-      allPlayers[playerId].activeGame = null;
+    const existingPlayer = await prisma.user.findUnique({
+      where: { id: playerId },
+    });
+    if (existingPlayer) {
+      await prisma.user.update({
+        where: { id: playerId },
+        data: { activeGameId: null },
+      });
     } else {
-      const newPlayer = { id: playerId, activeGame: null };
-      allPlayers[playerId] = newPlayer;
+      try {
+        await prisma.user.create({
+          data: { id: playerId, activeGameId: null },
+        });
+      } catch (error) {
+        console.log("Error creating user", error);
+      }
     }
 
-    const availablePlayer = Object.values(allPlayers).find(
-      (player) => player.activeGame === null && player.id !== socket.id
-    );
+    const availablePlayer = await prisma.user.findFirst({
+      where: { activeGameId: null, id: { not: playerId } },
+    });
 
     if (availablePlayer) {
-      const players =
-        Math.random() > 0.5
-          ? {
-              [Marker.PlayerX]: socket.id,
-              [Marker.PlayerO]: availablePlayer.id,
-            }
-          : {
-              [Marker.PlayerX]: availablePlayer.id,
-              [Marker.PlayerO]: socket.id,
-            };
-      const newGame: Game = {
-        id: socket.id + availablePlayer.id,
-        room: availablePlayer.id,
-        players,
-        board: [
-          [Marker.Empty, Marker.Empty, Marker.Empty],
-          [Marker.Empty, Marker.Empty, Marker.Empty],
-          [Marker.Empty, Marker.Empty, Marker.Empty],
-        ],
-        nextPlayer: players[Marker.PlayerX],
-        gameState: GameState.InProgress,
-      };
-      games[newGame.id] = newGame;
-      allPlayers[socket.id].activeGame = newGame.id;
-      allPlayers[availablePlayer.id].activeGame = newGame.id;
+      const playerX = Math.random() > 0.5 ? socket.id : availablePlayer.id;
+      const playerO = playerX === socket.id ? availablePlayer.id : socket.id;
+
+      const newGame = await prisma.game.create({
+        data: {
+          room: availablePlayer.id,
+          playerX,
+          playerO,
+          board: JSON.stringify([
+            [Marker.Empty, Marker.Empty, Marker.Empty],
+            [Marker.Empty, Marker.Empty, Marker.Empty],
+            [Marker.Empty, Marker.Empty, Marker.Empty],
+          ]),
+          nextPlayer: playerX,
+          gameState: GameState.InProgress,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: playerX },
+        data: { activeGameId: newGame.id },
+      });
+      await prisma.user.update({
+        where: { id: playerO },
+        data: { activeGameId: newGame.id },
+      });
       // add players to the game room
       socket.join(availablePlayer.id);
-      io.to(availablePlayer.id).emit("updateGame", newGame);
+      io.to(availablePlayer.id).emit("updateGame", {
+        ...newGame,
+        board: JSON.parse(newGame.board),
+        gameState: GameState.InProgress,
+      });
     } else {
       socket.join(playerId);
     }
   });
 
-  socket.on("makeMove", ({ row, col, gameId }) => {
-    const game = games[gameId];
+  socket.on("makeMove", async ({ row, col, gameId }) => {
+    const rawGame = await prisma.game.findUnique({
+      where: { id: gameId },
+    });
+    if (!rawGame) {
+      return;
+    }
+    const game: Game = {
+      ...rawGame,
+      board: JSON.parse(rawGame.board),
+      gameState: rawGame.gameState as GameState,
+    };
     const playerID = socket.id;
     if (
       !game ||
       game.gameState !== GameState.InProgress ||
       game.nextPlayer !== playerID ||
-      (game.players[Marker.PlayerX] !== playerID &&
-        game.players[Marker.PlayerO] !== playerID) ||
+      (game.playerX !== playerID && game.playerO !== playerID) ||
       !isValidMove(playerID, row, col, game)
     ) {
       return;
@@ -84,31 +108,46 @@ io.on("connection", (socket) => {
 
     const nextGameState = produce(game, (draft) => {
       draft.board[row][col] =
-        draft.nextPlayer === draft.players[Marker.PlayerX]
-          ? Marker.PlayerX
-          : Marker.PlayerO;
+        draft.nextPlayer === draft.playerX ? Marker.PlayerX : Marker.PlayerO;
       if (isGameWon(draft)) {
         draft.gameState =
-          draft.nextPlayer === draft.players[Marker.PlayerX]
+          draft.nextPlayer === draft.playerX
             ? GameState.PlayerXWon
             : GameState.PlayerOWon;
       }
       draft.nextPlayer =
-        draft.nextPlayer === draft.players[Marker.PlayerX]
-          ? draft.players[Marker.PlayerO]
-          : draft.players[Marker.PlayerX];
+        draft.nextPlayer === draft.playerX ? draft.playerO : draft.playerX;
     });
 
+    await prisma.game.update({
+      where: { id: gameId },
+      data: {
+        board: JSON.stringify(nextGameState.board),
+        nextPlayer: nextGameState.nextPlayer,
+        gameState: nextGameState.gameState,
+      },
+    });
     io.to(nextGameState.room).emit("updateGame", nextGameState);
   });
 
-  socket.on("disconnect", () => {
-    const player = allPlayers[socket.id];
-    if (player && player.activeGame) {
-      const game = games[player.activeGame];
+  socket.on("disconnect", async () => {
+    const player = await prisma.user.findUnique({
+      where: { id: socket.id },
+    });
+    if (player && player.activeGameId) {
+      const game = await prisma.game.findUnique({
+        where: { id: player.activeGameId },
+      });
       if (game && game.gameState === GameState.InProgress) {
-        game.gameState = GameState.Quit;
-        io.to(game.room).emit("updateGame", game);
+        await prisma.game.update({
+          where: { id: game.id },
+          data: { gameState: GameState.Quit },
+        });
+        io.to(game.room).emit("updateGame", {
+          ...game,
+          board: JSON.parse(game.board),
+          gameState: GameState.Quit,
+        });
       }
     }
   });

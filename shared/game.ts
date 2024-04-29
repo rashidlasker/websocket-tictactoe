@@ -18,12 +18,10 @@ export enum Marker {
 }
 
 export interface Game {
-  id: string;
+  id: number;
   room: string;
-  players: {
-    [Marker.PlayerX]: string;
-    [Marker.PlayerO]: string;
-  };
+  playerX: string;
+  playerO: string;
   board: Marker[][];
   nextPlayer: string;
   gameState: GameState;

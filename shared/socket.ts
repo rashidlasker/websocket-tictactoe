@@ -13,7 +13,7 @@ export interface ClientToServerEvents {
   }: {
     row: number;
     col: number;
-    gameId: string;
+    gameId: number;
   }) => void;
   disconnect: () => void;
 }

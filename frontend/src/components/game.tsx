@@ -65,13 +65,9 @@ const TicTacToeGame: React.FC = () => {
     } else if (game.gameState === GameState.Quit) {
       return "Opponent left the game";
     } else if (game.gameState === GameState.PlayerXWon) {
-      return socket.id === game.players[Marker.PlayerX]
-        ? "You won!"
-        : "Player X won";
+      return socket.id === game.playerX ? "You won!" : "Player X won";
     } else if (game.gameState === GameState.PlayerOWon) {
-      return socket.id === game.players[Marker.PlayerO]
-        ? "You won!"
-        : "Player O won";
+      return socket.id === game.playerO ? "You won!" : "Player O won";
     } else if (game.gameState === GameState.Draw) {
       return "Draw";
     }

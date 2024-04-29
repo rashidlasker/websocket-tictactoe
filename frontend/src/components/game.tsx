@@ -78,35 +78,39 @@ const TicTacToeGame: React.FC = () => {
   }, [game]);
 
   return (
-    <div>
-      <h1>Tic Tac Toe</h1>
+    <div className="flex flex-col justify-center gap-4">
+      <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+        Tic Tac Toe
+      </h1>
       {message && <div>{message}</div>}
       {!!game && (
-        <div>
-          <div className="flex flex-col">
-            {game.board.map((row, i) => (
-              <div key={i} className="flex flex-row justify-center">
-                {row.map((cell, j) => (
-                  <div
-                    key={j}
-                    className={twMerge(
-                      "w-16 h-16 flex items-center justify-center border border-gray-300",
-                      isSpaceSelectable(i, j)
-                        ? "hover:bg-gray-100 cursor-pointer"
-                        : ""
-                    )}
-                    onClick={() => makeMove(i, j)}
-                  >
-                    {cell}
-                  </div>
-                ))}
-              </div>
-            ))}
+        <>
+          <div>
+            <div className="flex flex-col">
+              {game.board.map((row, i) => (
+                <div key={i} className="flex flex-row justify-center">
+                  {row.map((cell, j) => (
+                    <div
+                      key={j}
+                      className={twMerge(
+                        "w-16 h-16 flex items-center justify-center border border-gray-300",
+                        isSpaceSelectable(i, j)
+                          ? "hover:bg-gray-100 cursor-pointer"
+                          : ""
+                      )}
+                      onClick={() => makeMove(i, j)}
+                    >
+                      {cell}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
           {game.gameState !== GameState.InProgress && (
-            <Button onClick={startNewGame}>Start new game</Button>
+            <Button onClick={startNewGame}>Play again?</Button>
           )}
-        </div>
+        </>
       )}
     </div>
   );

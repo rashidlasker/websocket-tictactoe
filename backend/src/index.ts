@@ -1,13 +1,14 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { Marker, Game, GameState, Player } from "../../shared/game";
+import { Marker, Game, GameState } from "../../shared/game";
 import { produce } from "immer";
 import {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "../../shared/socket";
 import { PrismaClient } from "@prisma/client";
+import { deserializeGame } from "./models";
 
 const prisma = new PrismaClient();
 const app = express();
@@ -58,7 +59,7 @@ io.on("connection", (socket) => {
             [Marker.Empty, Marker.Empty, Marker.Empty],
             [Marker.Empty, Marker.Empty, Marker.Empty],
           ]),
-          nextPlayer: playerX,
+          nextPlayer: Marker.X,
           gameState: GameState.InProgress,
         },
       });
@@ -73,11 +74,7 @@ io.on("connection", (socket) => {
       });
       // add players to the game room
       socket.join(availablePlayer.id);
-      io.to(availablePlayer.id).emit("updateGame", {
-        ...newGame,
-        board: JSON.parse(newGame.board),
-        gameState: GameState.InProgress,
-      });
+      io.to(availablePlayer.id).emit("updateGame", deserializeGame(newGame));
     } else {
       socket.join(playerId);
     }
@@ -90,25 +87,21 @@ io.on("connection", (socket) => {
     if (!rawGame) {
       return;
     }
-    const game: Game = {
-      ...rawGame,
-      board: JSON.parse(rawGame.board),
-      gameState: rawGame.gameState as GameState,
-    };
+    const game = deserializeGame(rawGame);
     const playerID = socket.id;
     if (
       !game ||
       game.gameState !== GameState.InProgress ||
-      game.nextPlayer !== playerID ||
+      (game.nextPlayer === Marker.X && game.playerX !== playerID) ||
+      (game.nextPlayer === Marker.O && game.playerO !== playerID) ||
       (game.playerX !== playerID && game.playerO !== playerID) ||
-      !isValidMove(playerID, row, col, game)
+      !isValidMove(row, col, game)
     ) {
       return;
     }
 
     const nextGameState = produce(game, (draft) => {
-      draft.board[row][col] =
-        draft.nextPlayer === draft.playerX ? Marker.X : Marker.O;
+      draft.board[row][col] = draft.nextPlayer;
       if (isGameWon(draft)) {
         draft.gameState =
           draft.nextPlayer === draft.playerX
@@ -146,11 +139,7 @@ io.on("connection", (socket) => {
           where: { id: game.id },
           data: { gameState: GameState.Quit },
         });
-        io.to(game.room).emit("updateGame", {
-          ...game,
-          board: JSON.parse(game.board),
-          gameState: GameState.Quit,
-        });
+        io.to(game.room).emit("updateGame", deserializeGame(game));
       }
     }
   });
@@ -158,8 +147,8 @@ io.on("connection", (socket) => {
 
 server.listen(5000, () => console.log("Server is running on port 5000"));
 
-function isValidMove(playerID: string, row: number, col: number, game: Game) {
-  return game.nextPlayer === playerID && game.board[row][col] === Marker.Empty;
+function isValidMove(row: number, col: number, game: Game) {
+  return game.board[row][col] === Marker.Empty;
 }
 
 function isGameWon(game: Game) {

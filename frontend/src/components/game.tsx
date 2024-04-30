@@ -70,7 +70,9 @@ const TicTacToeGame: React.FC = () => {
   const message = useMemo(() => {
     if (!game) return "Waiting for another player...";
     if (game.gameState === GameState.InProgress) {
-      return game.nextPlayer === socket.id ? "Your turn" : "Opponent's turn";
+      return game.nextPlayer === Marker.X && game.playerX === socket.id
+        ? "Your turn"
+        : "Opponent's turn";
     } else if (game.gameState === GameState.Quit) {
       return "Opponent left the game";
     } else if (game.gameState === GameState.PlayerXWon) {

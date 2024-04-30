@@ -2,7 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { Marker, Game, GameState, Board, Pos } from "../../../shared/game";
+import {
+  Marker,
+  Game,
+  GameState,
+  Board,
+  Pos,
+  PosList,
+} from "../../../shared/game";
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -89,9 +96,9 @@ const TicTacToeGame: React.FC = () => {
 
   const transformBoard = (board: Board): Marker[][] => {
     const transformedBoard: Marker[][] = [];
-    for (let i of [Pos.Zero, Pos.One, Pos.Two]) {
+    for (let i of PosList) {
       transformedBoard.push([]);
-      for (let j of [Pos.Zero, Pos.One, Pos.Two]) {
+      for (let j of PosList) {
         transformedBoard[i].push(board[`${i}-${j}`]);
       }
     }

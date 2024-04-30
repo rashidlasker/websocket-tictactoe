@@ -32,16 +32,19 @@ export enum Pos {
   Zero = 0,
   One = 1,
   Two = 2,
+  Three = 3,
 }
 // type Pos = 0 | 1 | 2;
+
+export const PosList = [Pos.Zero, Pos.One, Pos.Two, Pos.Three] as const;
 
 type Row = Pos;
 type Col = Pos;
 
-export type Rows = [Pos.Zero, Pos.One, Pos.Two];
-export type Cols = [Pos.Zero, Pos.One, Pos.Two];
+type Rows = typeof PosList;
+type Cols = typeof PosList;
 
-type Append<Tuple, Elem> = Tuple extends [infer head, ...infer tail]
+type Append<Tuple, Elem> = Tuple extends readonly [infer head, ...infer tail]
   ? [head, ...Append<tail, Elem>]
   : [Elem];
 
@@ -52,7 +55,7 @@ type Append<Tuple, Elem> = Tuple extends [infer head, ...infer tail]
 //   Pos.Two,
 // ];
 
-type Reverse<Tuple> = Tuple extends [infer head, ...infer tail]
+type Reverse<Tuple> = Tuple extends readonly [infer head, ...infer tail]
   ? [...Reverse<tail>, head]
   : [];
 
@@ -60,18 +63,27 @@ type Reverse<Tuple> = Tuple extends [infer head, ...infer tail]
 
 type Coord = [Row, Col];
 
-type AppendList<A extends unknown[], B extends unknown[]> = [...A, ...B];
+type AppendList<A extends readonly unknown[], B extends readonly unknown[]> = [
+  ...A,
+  ...B
+];
 
 // const test: AppendList<[[Pos.Zero, Pos.Zero]], [[Pos.Zero, Pos.One]]> = [
 //   [Pos.Zero, Pos.Zero],
 //   [Pos.Zero, Pos.One],
 // ];
 
-type CartesianProduct<A extends unknown[], B extends unknown[]> = A extends [
+type CartesianProduct<
+  A extends readonly unknown[],
+  B extends readonly unknown[]
+> = A extends readonly [
   infer a extends unknown,
-  ...infer as extends unknown[]
+  ...infer as extends readonly unknown[]
 ]
-  ? B extends [infer b extends unknown, ...infer bs extends unknown[]]
+  ? B extends readonly [
+      infer b extends unknown,
+      ...infer bs extends readonly unknown[]
+    ]
     ? AppendList<
         [[a, b]],
         AppendList<CartesianProduct<as, B>, CartesianProduct<A, bs>>
@@ -79,7 +91,7 @@ type CartesianProduct<A extends unknown[], B extends unknown[]> = A extends [
     : []
   : [];
 
-type ListContains<A, B> = A extends [infer head, ...infer tail]
+type ListContains<A, B> = A extends readonly [infer head, ...infer tail]
   ? head extends B
     ? true
     : ListContains<tail, B>
@@ -89,7 +101,7 @@ type ListContains<A, B> = A extends [infer head, ...infer tail]
 
 type Filter<T extends unknown[], F> = T extends []
   ? []
-  : T extends [infer head, ...infer tail]
+  : T extends readonly [infer head, ...infer tail]
   ? head extends F
     ? Filter<tail, F>
     : [head, ...Filter<tail, F | head>]
@@ -109,11 +121,11 @@ type Dedupe<T extends unknown[]> = Filter<T, []>;
 //   [0, 1],
 // ];
 
-type Zip<A extends unknown[], B extends unknown[]> = A extends [
-  infer a,
-  ...infer as
-]
-  ? B extends [infer b, ...infer bs]
+type Zip<
+  A extends readonly unknown[],
+  B extends readonly unknown[]
+> = A extends readonly [infer a, ...infer as]
+  ? B extends readonly [infer b, ...infer bs]
     ? [[a, b], ...Zip<as, bs>]
     : []
   : [];
@@ -122,19 +134,20 @@ type Zip<A extends unknown[], B extends unknown[]> = A extends [
 //   [Pos.Zero, Pos.Zero],
 //   [Pos.One, Pos.One],
 //   [Pos.Two, Pos.Two],
+//   [Pos.Three, Pos.Three],
 // ];
 
-type WinningRows<A extends Pos[], B extends Pos[]> = A extends [
-  infer a extends Pos,
-  ...infer as extends Pos[]
-]
+type WinningRows<
+  A extends readonly Pos[],
+  B extends readonly Pos[]
+> = A extends readonly [infer a extends Pos, ...infer as extends readonly Pos[]]
   ? AppendList<[CartesianProduct<[a], Cols>], WinningRows<as, B>>
   : [];
 
-type WinningCols<A extends Pos[], B extends Pos[]> = B extends [
-  infer b extends Pos,
-  ...infer bs extends Pos[]
-]
+type WinningCols<
+  A extends readonly Pos[],
+  B extends readonly Pos[]
+> = B extends readonly [infer b extends Pos, ...infer bs extends readonly Pos[]]
   ? AppendList<[CartesianProduct<Rows, [b]>], WinningCols<A, bs>>
   : [];
 
@@ -159,7 +172,7 @@ type AllCoords = Dedupe<CartesianProduct<Rows, Cols>>;
 // type Board = CartesianProduct<AllCoords, [Marker]>;
 type TupleToKey<T extends readonly any[]> = `${T[0]}-${T[1]}`;
 
-type CoordsToKeys<C extends Coord[]> = C extends [
+type CoordsToKeys<C extends Coord[]> = C extends readonly [
   infer head extends Coord,
   ...infer tail extends Coord[]
 ]

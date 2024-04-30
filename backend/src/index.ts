@@ -1,7 +1,14 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { Marker, Game, GameState, Pos, Board } from "../../shared/game";
+import {
+  Marker,
+  Game,
+  GameState,
+  Pos,
+  Board,
+  PosList,
+} from "../../shared/game";
 import { produce } from "immer";
 import {
   ClientToServerEvents,
@@ -48,17 +55,12 @@ io.on("connection", (socket) => {
     if (availablePlayer) {
       const playerX = Math.random() > 0.5 ? socket.id : availablePlayer.id;
       const playerO = playerX === socket.id ? availablePlayer.id : socket.id;
-      const emptyBoard: Board = {
-        "0-0": Marker.Empty,
-        "0-1": Marker.Empty,
-        "0-2": Marker.Empty,
-        "1-0": Marker.Empty,
-        "1-1": Marker.Empty,
-        "1-2": Marker.Empty,
-        "2-0": Marker.Empty,
-        "2-1": Marker.Empty,
-        "2-2": Marker.Empty,
-      };
+      const emptyBoard: Board = PosList.reduce((acc, row) => {
+        PosList.forEach((col) => {
+          acc[`${row}-${col}`] = Marker.Empty;
+        });
+        return acc;
+      }, {} as Board);
       const newGame = await prisma.game.create({
         data: {
           room: availablePlayer.id,
@@ -160,19 +162,17 @@ function isValidMove(row: Pos, col: Pos, game: Game) {
 
 function isGameWon(game: Game) {
   const { board } = game;
-  for (let i of [Pos.Zero, Pos.One, Pos.Two]) {
+  for (let i of PosList) {
     // check rows and columns
     if (
       board[`${i}-${0}`] !== Marker.Empty &&
-      board[`${i}-${0}`] === board[`${i}-${1}`] &&
-      board[`${i}-${0}`] === board[`${i}-${2}`]
+      PosList.every((j) => board[`${i}-${j}`] === board[`${i}-${0}`])
     ) {
       return true;
     }
     if (
       board[`0-${i}`] !== Marker.Empty &&
-      board[`0-${i}`] === board[`1-${i}`] &&
-      board[`0-${i}`] === board[`2-${i}`]
+      PosList.every((j) => board[`${j}-${i}`] === board[`0-${i}`])
     ) {
       return true;
     }
@@ -180,15 +180,19 @@ function isGameWon(game: Game) {
   // check diagonals
   if (
     board[`${Pos.Zero}-${Pos.Zero}`] !== Marker.Empty &&
-    board[`${Pos.Zero}-${Pos.Zero}`] === board[`${Pos.One}-${Pos.One}`] &&
-    board[`${Pos.Zero}-${Pos.Zero}`] === board[`${Pos.Two}-${Pos.Two}`]
+    PosList.every(
+      (i) => board[`${i}-${i}`] === board[`${Pos.Zero}-${Pos.Zero}`]
+    )
   ) {
     return true;
   }
   if (
-    board[`${Pos.Zero}-${Pos.Two}`] !== Marker.Empty &&
-    board[`${Pos.Zero}-${Pos.Two}`] === board[`${Pos.One}-${Pos.One}`] &&
-    board[`${Pos.Zero}-${Pos.Two}`] === board[`${Pos.Two}-${Pos.Zero}`]
+    board[`${Pos.Zero}-${PosList[PosList.length - 1]}`] !== Marker.Empty &&
+    PosList.every(
+      (i) =>
+        board[`${i}-${PosList[PosList.length - 1 - i]}`] ===
+        board[`${Pos.Zero}-${PosList[PosList.length - 1]}`]
+    )
   ) {
     return true;
   }

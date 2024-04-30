@@ -1,4 +1,4 @@
-import { Game } from "./game";
+import { Game, Pos } from "./game";
 
 export interface ServerToClientEvents {
   updateGame: (game: Game) => void;
@@ -11,8 +11,8 @@ export interface ClientToServerEvents {
     col,
     gameId,
   }: {
-    row: number;
-    col: number;
+    row: Pos;
+    col: Pos;
     gameId: number;
   }) => void;
   disconnect: () => void;

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { Marker, Game, GameState } from "../../../shared/game";
+import { Marker, Game, GameState, Board, Pos } from "../../../shared/game";
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -36,16 +36,18 @@ const TicTacToeGame: React.FC = () => {
     );
   }, [game, myPlayerId]);
 
-  const isSpaceSelectable = (row: number, col: number) => {
+  const isSpaceSelectable = (row: Pos, col: Pos) => {
+    console.log("isSpaceSelectable", row, col);
+    console.log("game", game);
     return (
       game &&
-      game.board[row][col] === Marker.Empty &&
+      game.board[`${row}-${col}`] === Marker.Empty &&
       game.gameState === GameState.InProgress &&
       isMyTurn
     );
   };
 
-  const makeMove = (row: number, col: number) => {
+  const makeMove = (row: Pos, col: Pos) => {
     if (game) {
       if (!isMyTurn) {
         toast({
@@ -70,7 +72,8 @@ const TicTacToeGame: React.FC = () => {
   const message = useMemo(() => {
     if (!game) return "Waiting for another player...";
     if (game.gameState === GameState.InProgress) {
-      return game.nextPlayer === Marker.X && game.playerX === socket.id
+      return (game.nextPlayer === Marker.X && game.playerX === socket.id) ||
+        (game.nextPlayer === Marker.O && game.playerO === socket.id)
         ? "Your turn"
         : "Opponent's turn";
     } else if (game.gameState === GameState.Quit) {
@@ -84,6 +87,17 @@ const TicTacToeGame: React.FC = () => {
     }
   }, [game]);
 
+  const transformBoard = (board: Board): Marker[][] => {
+    const transformedBoard: Marker[][] = [];
+    for (let i of [Pos.Zero, Pos.One, Pos.Two]) {
+      transformedBoard.push([]);
+      for (let j of [Pos.Zero, Pos.One, Pos.Two]) {
+        transformedBoard[i].push(board[`${i}-${j}`]);
+      }
+    }
+    return transformedBoard;
+  };
+
   return (
     <div className="flex flex-col justify-center gap-4">
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
@@ -94,7 +108,7 @@ const TicTacToeGame: React.FC = () => {
         <>
           <div>
             <div className="flex flex-col">
-              {game.board.map((row, i) => (
+              {transformBoard(game.board).map((row, i) => (
                 <div key={i} className="flex flex-row justify-center">
                   {row.map((cell, j) => (
                     <div

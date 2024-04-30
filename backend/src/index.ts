@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { Marker, Game, GameState } from "../../shared/game";
+import { Marker, Game, GameState, Pos, Board } from "../../shared/game";
 import { produce } from "immer";
 import {
   ClientToServerEvents,
@@ -48,17 +48,23 @@ io.on("connection", (socket) => {
     if (availablePlayer) {
       const playerX = Math.random() > 0.5 ? socket.id : availablePlayer.id;
       const playerO = playerX === socket.id ? availablePlayer.id : socket.id;
-
+      const emptyBoard: Board = {
+        "0-0": Marker.Empty,
+        "0-1": Marker.Empty,
+        "0-2": Marker.Empty,
+        "1-0": Marker.Empty,
+        "1-1": Marker.Empty,
+        "1-2": Marker.Empty,
+        "2-0": Marker.Empty,
+        "2-1": Marker.Empty,
+        "2-2": Marker.Empty,
+      };
       const newGame = await prisma.game.create({
         data: {
           room: availablePlayer.id,
           playerX,
           playerO,
-          board: JSON.stringify([
-            [Marker.Empty, Marker.Empty, Marker.Empty],
-            [Marker.Empty, Marker.Empty, Marker.Empty],
-            [Marker.Empty, Marker.Empty, Marker.Empty],
-          ]),
+          board: JSON.stringify(emptyBoard),
           nextPlayer: Marker.X,
           gameState: GameState.InProgress,
         },
@@ -101,14 +107,15 @@ io.on("connection", (socket) => {
     }
 
     const nextGameState = produce(game, (draft) => {
-      draft.board[row][col] = draft.nextPlayer;
+      draft.board[`${row}-${col}`] = draft.nextPlayer;
       if (isGameWon(draft)) {
         draft.gameState =
-          draft.nextPlayer === draft.playerX
+          draft.nextPlayer === Marker.X
             ? GameState.PlayerXWon
             : GameState.PlayerOWon;
       } else if (
-        draft.board.every((row) => row.every((cell) => cell !== Marker.Empty))
+        Object.values(draft.board).filter((cell) => cell === Marker.Empty)
+          .length === 0
       ) {
         draft.gameState = GameState.Draw;
       }
@@ -135,11 +142,11 @@ io.on("connection", (socket) => {
         where: { id: player.activeGameId },
       });
       if (game && game.gameState === GameState.InProgress) {
-        await prisma.game.update({
+        const updatedGame = await prisma.game.update({
           where: { id: game.id },
           data: { gameState: GameState.Quit },
         });
-        io.to(game.room).emit("updateGame", deserializeGame(game));
+        io.to(game.room).emit("updateGame", deserializeGame(updatedGame));
       }
     }
   });
@@ -147,39 +154,41 @@ io.on("connection", (socket) => {
 
 server.listen(5000, () => console.log("Server is running on port 5000"));
 
-function isValidMove(row: number, col: number, game: Game) {
-  return game.board[row][col] === Marker.Empty;
+function isValidMove(row: Pos, col: Pos, game: Game) {
+  return game.board[`${row}-${col}`] === Marker.Empty;
 }
 
 function isGameWon(game: Game) {
   const { board } = game;
-  for (let i = 0; i < 3; i++) {
+  for (let i of [Pos.Zero, Pos.One, Pos.Two]) {
+    // check rows and columns
     if (
-      board[i][0] !== Marker.Empty &&
-      board[i][0] === board[i][1] &&
-      board[i][0] === board[i][2]
+      board[`${i}-${0}`] !== Marker.Empty &&
+      board[`${i}-${0}`] === board[`${i}-${1}`] &&
+      board[`${i}-${0}`] === board[`${i}-${2}`]
     ) {
       return true;
     }
     if (
-      board[0][i] !== Marker.Empty &&
-      board[0][i] === board[1][i] &&
-      board[0][i] === board[2][i]
+      board[`0-${i}`] !== Marker.Empty &&
+      board[`0-${i}`] === board[`1-${i}`] &&
+      board[`0-${i}`] === board[`2-${i}`]
     ) {
       return true;
     }
   }
+  // check diagonals
   if (
-    board[0][0] !== Marker.Empty &&
-    board[0][0] === board[1][1] &&
-    board[0][0] === board[2][2]
+    board[`${Pos.Zero}-${Pos.Zero}`] !== Marker.Empty &&
+    board[`${Pos.Zero}-${Pos.Zero}`] === board[`${Pos.One}-${Pos.One}`] &&
+    board[`${Pos.Zero}-${Pos.Zero}`] === board[`${Pos.Two}-${Pos.Two}`]
   ) {
     return true;
   }
   if (
-    board[0][2] !== Marker.Empty &&
-    board[0][2] === board[1][1] &&
-    board[0][2] === board[2][0]
+    board[`${Pos.Zero}-${Pos.Two}`] !== Marker.Empty &&
+    board[`${Pos.Zero}-${Pos.Two}`] === board[`${Pos.One}-${Pos.One}`] &&
+    board[`${Pos.Zero}-${Pos.Two}`] === board[`${Pos.Two}-${Pos.Zero}`]
   ) {
     return true;
   }

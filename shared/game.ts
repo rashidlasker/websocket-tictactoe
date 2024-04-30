@@ -27,17 +27,6 @@ export enum Marker {
   O = "O",
 }
 
-// Game state must be one of the following:
-export interface Game {
-  id: number;
-  room: string;
-  playerX: string;
-  playerO: string;
-  board: Board;
-  nextPlayer: Marker.X | Marker.O;
-  gameState: GameState;
-}
-
 // Changing the board size is as simple as changing the Pos enum and PosList
 export enum Pos {
   Zero = 0,
@@ -120,37 +109,44 @@ type UniqueInSequence<P extends Array<unknown>> = P extends Array<unknown>
   ? UnionToIntersection<P[number]>
   : never;
 
-export type ValidGame<B extends Board> =
-  | PlayerXWon<B>
-  | PlayerOWon<B>
-  | Draw<B>
-  | InProgress<B>
-  | Quit;
+export type Game = Winner<Marker, any> | Draw<any> | InProgress<any> | Quit;
 
-type PlayerXWon<B extends Board> = {
-  board: B;
-  nextPlayer: Marker.X extends GetWinner<B> ? Marker.X : never;
-  gameState: GameState.PlayerXWon;
-};
+interface Winner<S extends Marker, B extends Board> {
+  id: number;
+  room: string;
+  playerX: string;
+  playerO: string;
+  nextPlayer: S;
+  board: GetWinner<B> extends S ? B : never;
+  gameState: S extends Marker.X ? GameState.PlayerXWon : GameState.PlayerOWon;
+}
 
-type PlayerOWon<B extends Board> = {
-  board: B;
-  nextPlayer: Marker.O extends GetWinner<B> ? Marker.O : never;
-  gameState: GameState.PlayerOWon;
-};
-
-type Draw<B extends Board> = {
-  board: B;
+interface Draw<B extends Board> {
+  id: number;
+  room: string;
+  playerX: string;
+  playerO: string;
   nextPlayer: Marker;
+  board: AvailableMoves<BoardKeys, B> extends [] ? B : never;
   gameState: GameState.Draw;
-};
+}
 
-type InProgress<B extends Board> = {
+interface InProgress<B extends Board> {
+  id: number;
+  room: string;
+  playerX: string;
+  playerO: string;
   board: B;
   nextPlayer: Marker;
   gameState: GameState.InProgress;
-};
+}
 
-type Quit = {
+interface Quit {
+  id: number;
+  room: string;
+  playerX: string;
+  playerO: string;
+  board: any;
+  nextPlayer: Marker;
   gameState: GameState.Quit;
-};
+}

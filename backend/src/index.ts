@@ -108,7 +108,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const nextGameState = produce(game, (draft) => {
+    const nextGameState = produce(game, (draft: Game) => {
       draft.board[`${row}-${col}`] = draft.nextPlayer;
       if (isGameWon(draft)) {
         draft.gameState =

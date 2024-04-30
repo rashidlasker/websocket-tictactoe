@@ -28,15 +28,13 @@ export interface Game {
   gameState: GameState;
 }
 
+// Changing the board size is as simple as changing the Pos enum and PosList
 export enum Pos {
   Zero = 0,
   One = 1,
   Two = 2,
-  Three = 3,
 }
-// type Pos = 0 | 1 | 2;
-
-export const PosList = [Pos.Zero, Pos.One, Pos.Two, Pos.Three] as const;
+export const PosList = [Pos.Zero, Pos.One, Pos.Two] as const;
 
 type Row = Pos;
 type Col = Pos;

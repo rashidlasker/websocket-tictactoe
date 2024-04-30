@@ -44,8 +44,6 @@ const TicTacToeGame: React.FC = () => {
   }, [game, myPlayerId]);
 
   const isSpaceSelectable = (row: Pos, col: Pos) => {
-    console.log("isSpaceSelectable", row, col);
-    console.log("game", game);
     return (
       game &&
       game.board[`${row}-${col}`] === Marker.Empty &&

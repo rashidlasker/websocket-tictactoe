@@ -22,5 +22,5 @@ export const deserializeGame = (s: SerializedGame): Game => {
     board: JSON.parse(s.board),
     nextPlayer: s.nextPlayer as Marker.O | Marker.X,
     gameState: s.gameState as GameState,
-  };
+  } as Game;
 };

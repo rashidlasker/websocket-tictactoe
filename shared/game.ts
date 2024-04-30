@@ -5,7 +5,8 @@ import {
   Zip,
   Reverse,
   Dedupe,
-  UnionToIntersection,
+  TupleToUnion,
+  UniqueInSequence,
 } from "./utils";
 
 export interface Player {
@@ -65,8 +66,6 @@ type WinningGroups = [
   ...WinningDiags
 ];
 
-type TupleToUnion<T extends unknown[]> = T[number];
-
 type WinningCoords = TupleToUnion<WinningGroups>;
 
 type WinningKeySets = CoordsToKeys<WinningCoords>;
@@ -95,8 +94,6 @@ type AvailableMoves<BK extends BoardKey[], B extends Board> = BK extends []
     : AvailableMoves<tail, B>
   : BK;
 
-// const test: AvailableMoves<BoardKeys, EmptyBoard> = [];
-
 type GetWinner<B extends Board> = UniqueInSequence<
   LookupCoordinates<WinningKeySets, B>
 >;
@@ -105,11 +102,11 @@ type LookupCoordinates<C extends Array<BoardKey>, B extends Board> = {
   [Key in keyof C]: B[C[Key]];
 };
 
-type UniqueInSequence<P extends Array<unknown>> = P extends Array<unknown>
-  ? UnionToIntersection<P[number]>
-  : never;
-
-export type Game = Winner<Marker, any> | Draw<any> | InProgress<any> | Quit;
+export type Game =
+  | Winner<Marker, any>
+  | Draw<any>
+  | InProgress<any>
+  | Quit<any>;
 
 interface Winner<S extends Marker, B extends Board> {
   id: number;
@@ -118,7 +115,11 @@ interface Winner<S extends Marker, B extends Board> {
   playerO: string;
   nextPlayer: S;
   board: GetWinner<B> extends S ? B : never;
-  gameState: S extends Marker.X ? GameState.PlayerXWon : GameState.PlayerOWon;
+  gameState: S extends Marker.X
+    ? GameState.PlayerXWon
+    : S extends Marker.O
+    ? GameState.PlayerOWon
+    : never;
 }
 
 interface Draw<B extends Board> {
@@ -126,7 +127,7 @@ interface Draw<B extends Board> {
   room: string;
   playerX: string;
   playerO: string;
-  nextPlayer: Marker;
+  nextPlayer: Marker.X | Marker.O;
   board: AvailableMoves<BoardKeys, B> extends [] ? B : never;
   gameState: GameState.Draw;
 }
@@ -137,16 +138,16 @@ interface InProgress<B extends Board> {
   playerX: string;
   playerO: string;
   board: B;
-  nextPlayer: Marker;
+  nextPlayer: Marker.X | Marker.O;
   gameState: GameState.InProgress;
 }
 
-interface Quit {
+interface Quit<B extends Board> {
   id: number;
   room: string;
   playerX: string;
   playerO: string;
-  board: any;
-  nextPlayer: Marker;
+  board: B;
+  nextPlayer: Marker.X | Marker.O;
   gameState: GameState.Quit;
 }

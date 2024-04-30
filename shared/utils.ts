@@ -100,3 +100,8 @@ export type UnionToIntersection<U> =
 type _PutUnionMembersIntoFunctionArgumentPosition<U> = U extends any
   ? (k: U) => void
   : never;
+
+export type TupleToUnion<T extends unknown[]> = T[number];
+
+export type UniqueInSequence<P extends Array<unknown>> =
+  P extends Array<unknown> ? UnionToIntersection<P[number]> : never;
